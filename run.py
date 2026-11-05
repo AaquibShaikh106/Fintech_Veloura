@@ -45,12 +45,14 @@ class Handler(SimpleHTTPRequestHandler):
  def body(self): return json.loads(self.rfile.read(int(self.headers.get('Content-Length',0)) or 0) or b'{}')
  def do_GET(self):
   path=urlparse(self.path); q=parse_qs(path.query); c=db()
-  if path.path=='/api/cases':
+  if path.path=='/api/changes':
+   since=int(q.get('since',['0'])[0]); revision=c.execute('select coalesce(max(id),0) from audit').fetchone()[0]; c.close(); self.send_json({'revision':revision,'changed':revision>since})
+  elif path.path=='/api/cases':
    role=q.get('role',['manager'])[0]; cid=q.get('case',['TM-0001'])[0]
    rows=[dict(x) for x in c.execute('select * from cases order by dpd desc')]; out=[]
    for x in rows:
     x.update(score(x)); x['timeline']=[dict(z) for z in c.execute('select * from logs where case_id=? order by id desc',(x['id'],))]; x['promise']=(dict(c.execute('select * from promises where case_id=? order by id desc limit 1',(x['id'],)).fetchone()) if c.execute('select count(*) from promises where case_id=?',(x['id'],)).fetchone()[0] else None); out.append(x)
-   c.close(); self.send_json({'cases':out,'role':role,'selected':cid})
+   revision=c.execute('select coalesce(max(id),0) from audit').fetchone()[0]; c.close(); self.send_json({'cases':out,'role':role,'selected':cid,'revision':revision})
   elif path.path=='/api/audit':
    rows=[dict(x) for x in c.execute('select * from audit order by id desc limit 30')]; c.close(); self.send_json(rows)
   elif path.path=='/api/stream':

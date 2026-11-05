@@ -30,7 +30,8 @@ Choose Manager, Agent or Borrower on the sign-in screen. The three role cards us
 - Mobile agent case list, case details, GPS-stamped visit logging, call outcomes, promise-to-pay and digital-first follow-up.
 - Borrower loan/dues view, EMI breakdown, transparent contact timeline, simulated confirmed payment, assistance request and multilingual assistant (English, Hindi, Marathi).
 - Respectful simulated reminders with duplicate, contact-frequency, quiet-hour and consent checks.
-- Shared SQLite account record, role-restricted views, immutable-style audit events and server-sent event refreshes.
+- Shared SQLite account record, role-restricted views, immutable-style audit events, server-sent updates and a lightweight one-second change check.
+- Live sync indicator with last-check age and reconnect status, persistent light/dark theme, and a borrower repayment plan estimator that submits a human-reviewed support request.
 - City recovery sentiment, borrower note capture, broken-promise visibility and workload indicators.
 
 ## Architecture

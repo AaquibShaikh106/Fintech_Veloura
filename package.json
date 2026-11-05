@@ -1,0 +1,10 @@
+{
+  "name": "trustmint-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TRUSTMINT local demo server and web app",
+  "scripts": {
+    "dev": "python run.py",
+    "start": "python run.py"
+  }
+}

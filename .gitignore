@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+trustmint.db
+node_modules/
+.env

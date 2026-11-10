@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRUSTMINT – AI-Powered Debt Collections Platform</title>
+<!--
+=====================================================================
+ TRUSTMINT | Team Veloura | Quasar 5.0 – FinTech Track
+ FRONT-END ONLY (single file). Backend/API wiring is left for later.
+
+ HOW THIS FILE IS ORGANISED (for the backend developer)
+ 1. <style>      : design tokens (CSS variables) + components
+ 2. <body>       : one <section class="page" id="..."> per screen
+ 3. <script>     : (a) MOCK DATA  (b) router  (c) renderers  (d) i18n
+ 
+ API CONVENTIONS
+ - Every spot that needs a backend call is tagged:  [API: METHOD /path] in HTML comments
+   and/or in JS:  // API: METHOD /path
+ - Replace the MOCK_* constants with fetch() results; the render functions
+   don't need to change as long as the JSON shape stays the same.
+ - Any button with  data-go="name"  navigates to #name. If no <section id="name">
+   exists yet, a BLANK placeholder page is shown automatically.
+   So: build the page later, give it id="name", and it just works.
+ ===================================================================== -->
+<style>
+/* ---------- 1. DESIGN TOKENS: formal banking palette (navy / steel / white) ---------- */
+:root{
+  --navy:#0b2545; --navy-2:#13315c; --steel:#3e5c86; --accent:#1f7a8c;
+  --bg:#f3f6fa; --card:#fff; --line:#dbe3ec; --text:#1b2a3a; --muted:#64768a;
+  --ok:#2e7d4f; --warn:#c77d12; --bad:#b3261e; --radius:10px;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;font:15px/1.55 "Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+h1,h2,h3{margin:0 0 .4em;color:var(--navy);line-height:1.25}
+a{color:var(--accent)}
+/* ---------- Header / nav ---------- */
+header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:20}
+.bar{max-width:1200px;margin:auto;display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:20px;letter-spacing:.5px;cursor:pointer}
+.brand small{display:block;font-weight:400;font-size:11px;opacity:.7;letter-spacing:0}
+nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+nav a{color:#cfe0f5;text-decoration:none;padding:7px 12px;border-radius:6px;font-size:14px;cursor:pointer}
+nav a:hover,nav a.on{background:var(--navy-2);color:#fff}
+select,input,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+header select{background:var(--navy-2);color:#fff;border-color:var(--steel)}
+/* ---------- Layout / components ---------- */
+main{max-width:1200px;margin:auto;padding:24px 20px 60px}
+.page{display:none} .page.on{display:block}
+.grid{display:grid;gap:16px} .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))} .g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.btn{display:inline-block;border:0;border-radius:6px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--navy);color:#fff}
+.btn:hover{background:var(--navy-2)} .btn.alt{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.kpi b{display:block;font-size:26px;color:var(--navy)} .kpi span{color:var(--muted);font-size:13px}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.high{background:#fbe4e2;color:var(--bad)} .med{background:#fdf0d9;color:var(--warn)} .low{background:#e0f1e7;color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
+tr.row{cursor:pointer} tr.row:hover{background:#f0f5fb}
+.tbl{overflow-x:auto}
+.hero{background:linear-gradient(120deg,var(--navy),var(--steel));color:#fff;border-radius:14px;padding:44px 32px;margin-bottom:20px}
+.hero h1{color:#fff;font-size:34px} .hero p{max-width:680px;opacity:.9}
+.hero .btn{background:#fff;color:var(--navy)} .hero .btn.alt{background:transparent;color:#fff;border-color:#fff}
+.bars{display:flex;align-items:flex-end;gap:10px;height:150px} .bars i{flex:1;background:var(--steel);border-radius:4px 4px 0 0;position:relative}
+.bars i span{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-size:11px;color:var(--muted);font-style:normal}
+.meter{height:8px;background:var(--line);border-radius:9px;overflow:hidden} .meter div{height:100%;background:var(--accent)}
+.timeline{border-left:2px solid var(--line);margin:8px 0 0 6px;padding-left:14px} .timeline p{margin:0 0 10px;font-size:14px}
+.timeline small{color:var(--muted)}
+.blank{border:2px dashed var(--line);border-radius:var(--radius);padding:70px 20px;text-align:center;color:var(--muted)}
+.chat{height:200px;overflow:auto;background:#f7f9fc;border:1px solid var(--line);border-radius:6px;padding:10px;margin-bottom:8px;font-size:14px}
+.chat p{margin:0 0 8px} .chat .me{text-align:right;color:var(--navy)}
+.note{font-size:12px;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+/* ---------- AUTH: login portals (re-uses the existing colour tokens) ---------- */
+[hidden]{display:none!important}
+.auth{display:grid;grid-template-columns:1.25fr 1fr;gap:22px;align-items:stretch}
+.auth-intro{grid-column:1/-1;text-align:center;margin-bottom:2px}.auth-intro p{color:var(--muted);margin:4px auto 0}
+.acard{position:relative;border:1px solid var(--line);border-radius:14px;padding:30px 28px 24px;overflow:hidden;box-shadow:0 10px 30px rgba(11,37,69,.08);transition:box-shadow .25s,transform .25s}
+.acard:hover{transform:translateY(-2px);box-shadow:0 16px 36px rgba(11,37,69,.14)}
+.acard::before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,var(--navy),var(--accent))}
+.acard.cust{background:linear-gradient(160deg,#fff 55%,#e6f2f5)}.acard.mgr{background:linear-gradient(160deg,#fff 55%,#edf1f8)}
+.acard.focus{box-shadow:0 0 0 3px rgba(31,122,140,.35),0 16px 36px rgba(11,37,69,.14)}
+.abadge{position:absolute;top:18px;right:18px;font-size:11px;font-weight:600;color:var(--accent);background:#e3f1f3;padding:3px 10px;border-radius:99px}
+.aicon{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--navy),var(--steel));color:#fff;display:grid;place-items:center;font-size:26px;margin-bottom:14px}
+.acard h2{margin-bottom:2px}.field{display:block;margin:16px 0 5px;font-weight:600;font-size:13px;color:var(--navy)}
+.acard input{width:100%}.acard input:focus{outline:2px solid var(--accent);border-color:var(--accent)}.acard input.bad{border-color:var(--bad)}
+.mob{display:flex}.mob span{display:grid;place-items:center;padding:0 12px;background:var(--bg);border:1px solid var(--line);border-right:0;border-radius:6px 0 0 6px;font-weight:600;color:var(--navy)}.mob input{border-radius:0 6px 6px 0}
+.pw{position:relative}.pw button{position:absolute;right:6px;top:5px;border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;padding:5px 8px}
+.otp{display:flex;gap:8px;margin:12px 0 4px}.acard .otp input{width:100%;height:54px;text-align:center;font-size:22px;font-weight:700;padding:0;color:var(--navy)}
+.err{color:var(--bad);font-size:13px;min-height:20px;margin-top:6px}
+.acard .btn{width:100%;padding:12px;margin-top:6px;font-size:15px}.acard a{cursor:pointer;font-weight:600}.acard a.off{color:var(--muted);pointer-events:none}
+.trust{grid-column:1/-1;display:flex;gap:26px;flex-wrap:wrap;justify-content:center;color:var(--muted);font-size:13px}
+header .btn.alt{background:transparent}  /* header buttons: white text on navy (was white-on-white) */
+.who{color:#cfe0f5;font-size:13px}.who b{color:#fff}
+.gate{max-width:1200px;margin:0 auto 14px;background:#fdf0d9;color:var(--warn);border:1px solid #f0d9ad;border-radius:8px;padding:10px 14px;font-weight:600}
+@media(max-width:820px){.auth{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ================= HEADER + NAVIGATION ================= -->
+<header><div class="bar">
+  <div class="brand" data-go="home">TRUSTMINT<small data-i18n="tagline">Building Trust. Simplifying Recovery.</small></div>
+  <!-- data-roles = who may SEE the link. Real protection must be enforced by the backend. -->
+  <nav id="nav">
+    <a data-go="home" data-roles="public customer manager" data-i18n="nav_home">Home</a>
+    <a data-go="manager" data-roles="manager" data-i18n="nav_manager">Manager Dashboard</a>
+    <a data-go="cases" data-roles="manager" data-i18n="nav_cases">Case Prioritisation</a>
+    <a data-go="agents" data-roles="manager" data-i18n="nav_agents">Field Agents</a>
+    <a data-go="reminders" data-roles="manager" data-i18n="nav_rem">Reminders</a>
+    <a data-go="compliance" data-roles="manager" data-i18n="nav_comp">Compliance</a>
+    <a data-go="borrower" data-roles="customer" data-i18n="nav_borrower">Borrower Portal</a>
+    <a data-go="my-reminders" data-roles="customer">My Reminders</a>
+  </nav>
+  <!-- Multilingual support: English / Hindi / Marathi (see I18N in script) -->
+  <select id="lang" aria-label="Language"><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select>
+  <!-- Shown after login: who is signed in + Logout. API: POST /api/auth/logout -->
+  <span class="who" id="who" hidden><b id="whoRole"></b> · <span id="whoId"></span></span>
+  <button class="btn alt sm" id="loginBtn" style="color:#fff;border-color:#fff" data-go="login" data-i18n="login">Login</button>
+  <button class="btn alt sm" id="logoutBtn" style="color:#fff;border-color:#fff" hidden>Logout</button>
+</div></header>
+
+<main>
+
+<!-- ================= HOME / LANDING ================= -->
+<section class="page" id="home">
+  <div class="hero">
+    <h1>AI-Powered Debt Collections Platform</h1>
+    <p>One connected system for banks, NBFCs, managers, field agents and borrowers. Intelligent risk scoring, automated case prioritisation, and coordinated digital and field collection – faster, smarter and fairer recovery.</p>
+    <button class="btn" data-go="login">Customer Login</button>
+    <button class="btn alt" data-go="manager-login">Bank Manager Login</button>
+  </div>
+
+  <!-- The 9 proposed features. Each card links to its screen (or a blank page if not built). -->
+  <h2>Platform capabilities</h2>
+  <div class="grid g3" id="features"></div>
+
+  <h2 style="margin-top:28px">Built for both sides</h2>
+  <div class="grid g2">
+    <div class="card"><h3>🏦 For banks &amp; NBFCs</h3><p>Replace spreadsheets with one live record per account. Prioritise by risk, avoid wasted field visits, track agents, and keep audit-ready compliance logs.</p></div>
+    <div class="card"><h3>👤 For borrowers</h3><p>See dues and payment history in one place, get respectful reminders in your language, and find repayment support. No repeated or duplicate contact.</p></div>
+  </div>
+</section>
+
+<!-- ================= MANAGER DASHBOARD ================= -->
+<section class="page" id="manager">
+  <h2>Manager Dashboard</h2>
+  <!-- API: GET /api/dashboard/summary  → fills #kpis, #trend, #mix -->
+  <div class="grid g4" id="kpis"></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>Recovery trend (₹ lakh, last 6 months)</h3><div class="bars" id="trend"></div><br></div>
+    <div class="card"><h3>Overdue accounts by risk</h3><div id="mix"></div>
+      <!-- Swap CSS bars for Chart.js here if desired (cdnjs, pinned version) -->
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Agent performance</h3><div class="tbl"><table id="perf"></table></div>
+    <button class="btn alt sm" data-go="reports">Export report</button> <!-- API: GET /api/reports/export -->
+  </div>
+</section>
+
+<!-- ================= CASE PRIORITISATION + RISK EXPLANATION ================= -->
+<section class="page" id="cases">
+  <h2>Smart Case Prioritisation</h2>
+  <p class="note">AI recommends; humans decide. Click a case to see why it received its score and the unified account record.</p>
+  <div class="grid g2" style="grid-template-columns:1.4fr 1fr">
+    <div class="card"><div class="tbl"><table id="caseTable"></table></div></div>
+    <div class="card" id="caseDetail"><p class="note">Select a case.</p></div>
+  </div>
+</section>
+
+<!-- ================= FIELD AGENTS ================= -->
+<section class="page" id="agents">
+  <h2>Field Agent Management</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Agents</h3><div class="tbl"><table id="agentTable"></table></div>
+      <button class="btn sm" data-go="assign">Assign cases</button> <!-- API: POST /api/assignments -->
+    </div>
+    <div class="card"><h3>Live agent map</h3>
+      <!-- API: GET /api/agents/locations → plug in map SDK here (Google Maps / Leaflet) -->
+      <div class="blank" style="padding:60px 10px">Map placeholder<br><small>Needs maps API key</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= AUTOMATED REMINDERS ================= -->
+<section class="page" id="reminders">
+  <h2>Automated Digital Reminders</h2>
+  <div class="grid g2">
+    <div class="card"><h3>Message preview</h3>
+      <label>Channel <select id="remCh"><option>SMS</option><option>WhatsApp</option><option>Email</option></select></label>
+      <label>Tone <select id="remTone"><option>Polite</option><option>Supportive</option></select></label>
+      <div class="chat" id="remPreview" style="height:auto;min-height:90px;margin-top:10px"></div>
+      <!-- API: POST /api/reminders/generate (AI text)  |  POST /api/reminders/send -->
+      <button class="btn" data-go="send-reminder">Send reminder</button>
+      <p class="note">Sending is checked against contact limits and consent before dispatch.</p>
+    </div>
+    <div class="card"><h3>Contact-limit guard</h3>
+      <p>Contacts this week for selected borrower: <b>2 / 3</b></p><div class="meter"><div style="width:66%"></div></div>
+      <p class="note">A duplicate follow-up (same borrower, same day, different team) is flagged and blocked automatically.</p>
+      <p><span class="tag med">Duplicate flagged</span> Case C-1042 – call already logged today by Agent Rohan.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BORROWER PORTAL ================= -->
+<section class="page" id="borrower">
+  <h2>Borrower Portal</h2>
+  <!-- API: GET /api/borrower/me → loan, dues, history -->
+  <div class="grid g3">
+    <div class="card kpi"><span>Outstanding amount</span><b>₹ 18,450</b></div>
+    <div class="card kpi"><span>Next EMI due</span><b>12 Nov 2026</b></div>
+    <div class="card kpi"><span>Status</span><b><span class="tag med">1 EMI overdue</span></b></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3>Dues breakdown</h3>
+      <table><tr><td>Principal overdue</td><td>₹ 16,200</td></tr><tr><td>Late charges</td><td>₹ 450</td></tr><tr><td>Upcoming EMI</td><td>₹ 1,800</td></tr></table><br>
+      <!-- API: POST /api/payments/initiate (payment gateway) -->
+      <button class="btn" data-go="pay">Pay now</button>
+      <button class="btn alt" data-go="repay-plan">Request repayment support</button>
+    </div>
+    <div class="card"><h3>AI Borrower Assistant</h3>
+      <div class="chat" id="chat"><p>Hello! Ask me about your dues, EMI schedule or repayment options.</p></div>
+      <!-- API: POST /api/assistant/chat  → replace placeholder reply in sendChat() -->
+      <div style="display:flex;gap:6px"><input id="chatIn" style="flex:1" placeholder="Type your question…"><button class="btn" id="chatBtn">Send</button></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Payment &amp; follow-up history</h3>
+    <div class="timeline">
+      <p>Payment of ₹1,800 received <br><small>05 Oct 2026 · updates all dashboards instantly</small></p>
+      <p>Reminder sent via SMS (Hindi) <br><small>28 Oct 2026</small></p>
+      <p>EMI due date missed <br><small>01 Nov 2026</small></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= COMPLIANCE & TRANSPARENCY ================= -->
+<section class="page" id="compliance">
+  <h2>Compliance &amp; Transparency</h2>
+  <div class="grid g3">
+    <div class="card kpi"><span>Max contacts / borrower / week</span><b>3</b></div>
+    <div class="card kpi"><span>Consent on record</span><b>96%</b></div>
+    <div class="card kpi"><span>Contact hours allowed</span><b>8 AM – 7 PM</b></div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3>Activity audit log</h3>
+    <!-- API: GET /api/audit-logs?limit=50 -->
+    <div class="tbl"><table id="audit"></table></div>
+    <button class="btn alt sm" data-go="reports">Download audit report</button>
+  </div>
+</section>
+
+<!-- Access-notice banner (filled by showGate()) -->
+<div class="gate" id="gate" hidden></div>
+
+<!-- ================= LOGIN PORTALS (public) =================
+     #login          → both portals (Customer first: most users are borrowers)
+     #manager-login  → same page, Manager card highlighted
+     Front-end validation only. API calls are marked in the script (section 3e). -->
+<section class="page" id="login">
+ <div class="auth">
+  <div class="auth-intro"><h1 style="font-size:30px">Welcome to TRUSTMINT</h1><p>Choose your portal and sign in.</p></div>
+
+  <!-- CUSTOMER PORTAL: mobile number + OTP -->
+  <div class="acard cust" id="custCard">
+   <span class="abadge">For borrowers</span>
+   <div class="aicon">👤</div><h2>Customer Login</h2>
+   <p class="note" style="font-size:13px">Sign in with your registered mobile number. We will send you a one-time password.</p>
+   <div id="custStep1">
+     <label class="field" for="mob">Mobile number</label>
+     <div class="mob"><span>+91</span><input id="mob" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile number"></div>
+     <div class="err" id="mobErr" role="alert"></div>
+     <button class="btn" id="otpSend">Send OTP</button>
+   </div>
+   <div id="custStep2" hidden>
+     <label class="field">Enter the 6-digit OTP sent to</label><b id="mobShow"></b>
+     <div class="otp" id="otpBoxes"></div>
+     <div class="err" id="otpErr" role="alert"></div>
+     <button class="btn" id="otpVerify">Verify &amp; Login</button>
+     <p class="note" style="margin-top:12px"><a id="otpResend" class="off">Resend OTP</a><span id="otpTimer"></span> &nbsp;·&nbsp; <a id="otpChange">Change number</a></p>
+   </div>
+   <p class="note" style="margin-top:14px">Demo mode: any 10-digit number and any 6-digit OTP works until the backend is connected.</p>
+  </div>
+
+  <!-- BANK MANAGER PORTAL: work email + password -->
+  <div class="acard mgr" id="mgrCard">
+   <span class="abadge">For bank staff</span>
+   <div class="aicon">🏦</div><h2>Bank Manager Login</h2>
+   <p class="note" style="font-size:13px">For bank and NBFC staff. Sign in with your work email and password.</p>
+   <label class="field" for="memail">Work email</label>
+   <input id="memail" type="email" autocomplete="username" placeholder="name@bank.com">
+   <div class="err" id="emailErr" role="alert"></div>
+   <label class="field" for="mpass" style="margin-top:0">Password</label>
+   <div class="pw"><input id="mpass" type="password" autocomplete="current-password" placeholder="Password"><button type="button" id="pwToggle">Show</button></div>
+   <div class="err" id="passErr" role="alert"></div>
+   <button class="btn" id="mgrLogin">Login</button>
+   <p class="note" style="margin-top:14px">Demo mode: any valid email and any password works until the backend is connected.</p>
+  </div>
+
+  <div class="trust"><span>🔒 OTP-based customer sign-in</span><span>🛡️ Role-based access</span><span>📋 Activity is logged for compliance</span></div>
+ </div>
+</section>
+
+<!-- ================= CUSTOMER: MY REMINDERS (customer only) =================
+     API: GET /api/borrower/me/reminders  → replace the sample items below -->
+<section class="page" id="my-reminders">
+  <h2>My Reminders</h2>
+  <p class="note">Every message sent to you about your loan, in one place.</p>
+  <div class="grid g3" style="margin:12px 0">
+    <div class="card kpi"><span>Max contacts / borrower / week</span><b>3</b></div>
+    <div class="card kpi"><span>Contact hours allowed</span><b>8 AM – 7 PM</b></div>
+  </div>
+  <div class="card"><div class="timeline">
+    <p>EMI due reminder via WhatsApp (English) <br><small>05 Nov 2026</small></p>
+    <p>Reminder sent via SMS (Hindi) <br><small>28 Oct 2026</small></p>
+  </div></div>
+</section>
+
+<!-- ================= BLANK PLACEHOLDER (auto-used for any unbuilt page) ================= -->
+<section class="page" id="blank">
+  <div class="blank"><h2 id="blankTitle">Page</h2><p>This page is intentionally blank – to be built together with its API.</p>
+    <button class="btn alt" data-go="home">← Back to Home</button></div>
+</section>
+
+</main>
+<footer>TRUSTMINT · Team Veloura · Quasar 5.0 FinTech · Prototype with sample data only</footer>
+
+<script>
+/* =====================================================================
+   3a. MOCK DATA – replace each with fetch() results from the backend.
+   ===================================================================== */
+// API: GET /api/dashboard/summary
+const MOCK_KPI=[["Overdue accounts","4,812"],["Recovered this month","₹ 1.9 Cr"],["Pending payments","₹ 6.4 Cr"],["Digital-resolved","58%"]];
+const MOCK_TREND=[["Jun",38],["Jul",52],["Aug",47],["Sep",66],["Oct",78],["Nov",90]];
+const MOCK_MIX=[["High",22,"high"],["Medium",41,"med"],["Low",37,"low"]];
+// API: GET /api/cases?sort=priority
+const MOCK_CASES=[
+ {id:"C-1042",name:"R. Sharma",due:42500,dpd:47,score:86,level:"high",lang:"Hindi",action:"Field visit (digital reminders ignored)",
+  why:["3 missed EMIs in last 6 months (+32)","No response to last 4 reminders (+24)","Outstanding > 40% of loan (+18)","Salary-date pattern on 1st (-6 ⇒ visit after 3rd)"]},
+ {id:"C-1077",name:"P. Deshmukh",due:18450,dpd:12,score:58,level:"med",lang:"Marathi",action:"Digital reminder + offer EMI restructure",
+  why:["1 missed EMI, earlier history clean (+20)","Opened last reminder but didn't pay (+16)","Partial payment made in September (-8)"]},
+ {id:"C-1103",name:"A. Khan",due:6200,dpd:5,score:24,level:"low",lang:"English",action:"Automated SMS reminder only",
+  why:["Always paid within 7 days historically (-30)","Payment app autopay failed once (+10)"]}];
+// API: GET /api/agents
+const MOCK_AGENTS=[["Rohan Patil","Andheri",12,8,"On route"],["Sneha Iyer","Thane",10,10,"Completed"],["Imran Shaikh","Navi Mumbai",14,5,"On route"]];
+// API: GET /api/audit-logs
+const MOCK_AUDIT=[["04 Nov 10:42","SMS reminder (Hindi)","C-1042","System","Consent ✔ · Limit 2/3"],["04 Nov 09:15","Call logged","C-1042","Rohan Patil","Within hours ✔"],["03 Nov 17:30","Payment received ₹1,800","C-1077","Gateway","Auto-updated"],["03 Nov 12:05","Reminder blocked (limit)","C-1103","System","Limit 3/3 reached"]];
+const FEATURES=[["🧠","AI Risk Prediction","Probability of delayed repayment from history.","cases"],["📋","Smart Prioritisation","Which accounts first, and what next action.","cases"],["✉️","Digital Reminders","Personalised, respectful messages.","reminders"],["💬","AI Borrower Assistant","Dues, EMI and repayment options explained.","borrower"],["🧭","Field Agent Management","Assign, track visits, keep records.","agents"],["🗂️","Unified Account Tracking","One shared record per account.","cases"],["🌐","Multilingual","English, Hindi and Marathi.","home"],["🛡️","Compliance & Transparency","Consent, limits, audit logs.","compliance"],["📊","Manager Dashboard","Recovery, agents and trends.","manager"]];
+
+/* =====================================================================
+   3b. ROUTER – hash based (#manager, #cases …). Unknown ⇒ blank page.
+   ===================================================================== */
+function route(){
+  let name=(location.hash||"#home").slice(1)||"home";
+  const sess=getSession(), role=sess&&sess.role;
+  const focusCard=name==="manager-login"?"mgrCard":name==="customer-login"?"custCard":null;
+  if(focusCard)name="login";                              // aliases of the login page
+  const page=document.getElementById(name), known=!!(page&&page.classList.contains("page"));
+  /* ---- ROLE GUARD (front-end only; the backend must enforce the same rules) ---- */
+  if(role){
+    if(name==="login"){location.hash=ROLE_HOME[role];return}                       // already signed in
+    if(known&&!ROLE_PAGES[role].includes(name)){showGate("This page isn't available for your account.");location.hash=ROLE_HOME[role];return}
+  }else if(name!=="home"&&name!=="login"){showGate("Please sign in to open that page.");location.hash="login";return}
+  applyAuthUI();
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  if(known){page.classList.add("on")}
+  else{document.getElementById("blankTitle").textContent=name.replace(/-/g," ").replace(/^./,c=>c.toUpperCase());document.getElementById("blank").classList.add("on")}
+  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.go===name));
+  ["custCard","mgrCard"].forEach(id=>$(id).classList.toggle("focus",id===focusCard));
+  if(focusCard)setTimeout(()=>$(focusCard==="mgrCard"?"memail":"mob").focus(),50);
+  scrollTo(0,0);
+}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-go]");if(t){location.hash=t.dataset.go}});
+addEventListener("hashchange",route);
+
+/* =====================================================================
+   3c. RENDERERS – read from MOCK_* only; keep JSON shape when wiring API.
+   ===================================================================== */
+const $=id=>document.getElementById(id), inr=n=>"₹ "+n.toLocaleString("en-IN");
+$("features").innerHTML=FEATURES.map(f=>`<div class="card" data-go="${f[3]}" style="cursor:pointer"><h3>${f[0]} ${f[1]}</h3><p class="note" style="font-size:14px">${f[2]}</p></div>`).join("");
+$("kpis").innerHTML=MOCK_KPI.map(k=>`<div class="card kpi"><span>${k[0]}</span><b>${k[1]}</b></div>`).join("");
+$("trend").innerHTML=MOCK_TREND.map(t=>`<i style="height:${t[1]}%"><span>${t[0]}</span></i>`).join("");
+$("mix").innerHTML=MOCK_MIX.map(m=>`<p><span class="tag ${m[2]}">${m[0]}</span> ${m[1]}%<div class="meter"><div style="width:${m[1]}%"></div></div></p>`).join("");
+$("perf").innerHTML="<tr><th>Agent</th><th>Area</th><th>Assigned</th><th>Done</th><th>Status</th></tr>"+MOCK_AGENTS.map(a=>`<tr><td>${a[0]}</td><td>${a[1]}</td><td>${a[2]}</td><td>${a[3]}</td><td>${a[4]}</td></tr>`).join("");
+$("agentTable").innerHTML=$("perf").innerHTML;
+$("audit").innerHTML="<tr><th>Time</th><th>Activity</th><th>Account</th><th>By</th><th>Check</th></tr>"+MOCK_AUDIT.map(r=>"<tr>"+r.map(c=>`<td>${c}</td>`).join("")+"</tr>").join("");
+$("caseTable").innerHTML="<tr><th>Case</th><th>Borrower</th><th>Due</th><th>DPD</th><th>Risk</th></tr>"+MOCK_CASES.map(c=>`<tr class="row" data-case="${c.id}"><td>${c.id}</td><td>${c.name}</td><td>${inr(c.due)}</td><td>${c.dpd}</td><td><span class="tag ${c.level}">${c.score}</span></td></tr>`).join("");
+document.addEventListener("click",e=>{const r=e.target.closest("[data-case]");if(r)showCase(r.dataset.case)});
+function showCase(id){ // API: GET /api/cases/{id}  (risk factors + unified timeline)
+  const c=MOCK_CASES.find(x=>x.id===id);
+  $("caseDetail").innerHTML=`<h3>${c.name} · ${c.id}</h3><p>Risk score <span class="tag ${c.level}">${c.score}/100</span> · Preferred language: ${c.lang}</p>
+  <h3 style="font-size:15px">Why this score?</h3><ul>${c.why.map(w=>`<li>${w}</li>`).join("")}</ul>
+  <h3 style="font-size:15px">Recommended next action</h3><p>${c.action}</p><p class="note">Suggestion only – a human officer makes the final decision.</p>
+  <button class="btn sm" data-go="reminders">Send digital reminder</button> <button class="btn alt sm" data-go="assign">Assign to agent</button>
+  <h3 style="font-size:15px;margin-top:14px">Unified record</h3><div class="timeline"><p>Reminder sent <br><small>Digital · last week</small></p><p>Call attempted <br><small>Agent · 2 days ago</small></p></div>`;
+}
+// Reminder preview (API: POST /api/reminders/generate replaces this template)
+function remPieces(){ // reminder-preview wording per language (function declaration so it is hoisted)
+  return {
+   en:["Dear customer, your EMI of ₹ 1,800 for loan LN-2291 is overdue. ","If you are facing difficulty, we can discuss flexible repayment options. Reply HELP.","Kindly pay by 12 Nov to avoid late charges. Thank you."],
+   hi:["प्रिय ग्राहक, ऋण LN-2291 की आपकी ₹ 1,800 की ईएमआई बकाया है। ","यदि आपको कठिनाई हो रही है, तो हम लचीले पुनर्भुगतान विकल्पों पर चर्चा कर सकते हैं। मदद के लिए HELP लिखें।","विलंब शुल्क से बचने के लिए कृपया 12 नव. तक भुगतान करें। धन्यवाद।"],
+   mr:["प्रिय ग्राहक, कर्ज LN-2291 ची तुमची ₹ 1,800 ची ईएमआय थकीत आहे. ","तुम्हाला अडचण येत असल्यास, आम्ही लवचिक परतफेड पर्यायांवर चर्चा करू शकतो. मदतीसाठी HELP लिहा.","विलंब शुल्क टाळण्यासाठी कृपया 12 नोव्हें. पर्यंत भरणा करा. धन्यवाद."]
+  }[LANG||"en"]}
+var LANG="en"; // current UI language: en | hi | mr (var so it is hoisted above first use)
+function remText(){const r=remPieces();return r[0]+($("remTone").selectedIndex===1?r[1]:r[2])+` (${$("remCh").value})`}
+["remCh","remTone"].forEach(i=>$(i).onchange=()=>$("remPreview").textContent=remText());$("remPreview").textContent=remText();
+// Borrower assistant (API: POST /api/assistant/chat)
+function sendChat(){const v=$("chatIn").value.trim();if(!v)return;
+  $("chat").innerHTML+=`<p class="me">${v.replace(/</g,"&lt;")}</p><p><i>[AI response will appear here once the assistant API is connected]</i></p>`;
+  $("chatIn").value="";$("chat").scrollTop=1e5}
+$("chatBtn").onclick=sendChat;$("chatIn").onkeydown=e=>{if(e.key==="Enter")sendChat()};
+
+/* =====================================================================
+   3d. I18N – WHOLE-PAGE translation (English / Hindi / Marathi).
+   - Every visible string is looked up in D below: [English, Hindi, Marathi].
+   - Works on static HTML AND on anything the renderers add later
+     (a MutationObserver re-translates new nodes), so no layout/markup changes.
+   - To add a language: add a column to each row of D and an <option> to #lang.
+   - Backend dev: later this table can be loaded from an API (GET /api/i18n/{lang}).
+   ===================================================================== */
+const D=Object.fromEntries([
+ ["Building Trust. Simplifying Recovery.", "भरोसा बनाएँ। वसूली सरल करें।", "विश्वास वाढवा. वसुली सोपी करा."],
+ ["Home", "होम", "मुख्यपृष्ठ"],
+ ["Manager Dashboard", "मैनेजर डैशबोर्ड", "व्यवस्थापक डॅशबोर्ड"],
+ ["Case Prioritisation", "केस प्राथमिकता", "केस प्राधान्य"],
+ ["Field Agents", "फ़ील्ड एजेंट", "फील्ड एजंट"],
+ ["Reminders", "रिमाइंडर", "स्मरणपत्रे"],
+ ["Borrower Portal", "उधारकर्ता पोर्टल", "कर्जदार पोर्टल"],
+ ["Compliance", "अनुपालन", "अनुपालन"],
+ ["Login", "लॉगिन", "लॉगिन"],
+ ["AI-Powered Debt Collections Platform", "एआई-संचालित ऋण वसूली प्लेटफ़ॉर्म", "एआय-आधारित कर्ज वसुली प्लॅटफॉर्म"],
+ ["One connected system for banks, NBFCs, managers, field agents and borrowers. Intelligent risk scoring, automated case prioritisation, and coordinated digital and field collection – faster, smarter and fairer recovery.", "बैंकों, एनबीएफसी, मैनेजरों, फ़ील्ड एजेंटों और उधारकर्ताओं के लिए एक जुड़ी हुई प्रणाली। बुद्धिमान जोखिम स्कोरिंग, स्वचालित केस प्राथमिकता, और समन्वित डिजिटल व फ़ील्ड वसूली – तेज़, समझदार और निष्पक्ष रिकवरी।", "बँका, एनबीएफसी, व्यवस्थापक, फील्ड एजंट आणि कर्जदारांसाठी एक जोडलेली प्रणाली. बुद्धिमान जोखीम स्कोअरिंग, स्वयंचलित केस प्राधान्य आणि समन्वित डिजिटल व फील्ड वसुली – जलद, हुशार आणि अधिक न्याय्य."],
+ ["Bank / NBFC Console", "बैंक / एनबीएफसी कंसोल", "बँक / एनबीएफसी कन्सोल"],
+ ["Platform capabilities", "प्लेटफ़ॉर्म की क्षमताएँ", "प्लॅटफॉर्मची वैशिष्ट्ये"],
+ ["Built for both sides", "दोनों पक्षों के लिए बनाया गया", "दोन्ही बाजूंसाठी बनवलेले"],
+ ["For banks & NBFCs", "बैंकों और एनबीएफसी के लिए", "बँका आणि एनबीएफसीसाठी"],
+ ["Replace spreadsheets with one live record per account. Prioritise by risk, avoid wasted field visits, track agents, and keep audit-ready compliance logs.", "स्प्रेडशीट की जगह हर खाते के लिए एक लाइव रिकॉर्ड पाएँ। जोखिम के आधार पर प्राथमिकता तय करें, बेकार फ़ील्ड विज़िट से बचें, एजेंटों को ट्रैक करें और ऑडिट-तैयार अनुपालन लॉग रखें।", "स्प्रेडशीटऐवजी प्रत्येक खात्यासाठी एक लाइव रेकॉर्ड मिळवा. जोखमीनुसार प्राधान्य ठरवा, अनावश्यक फील्ड भेटी टाळा, एजंटांचा मागोवा घ्या आणि ऑडिटसाठी तयार अनुपालन नोंदी ठेवा."],
+ ["For borrowers", "उधारकर्ताओं के लिए", "कर्जदारांसाठी"],
+ ["See dues and payment history in one place, get respectful reminders in your language, and find repayment support. No repeated or duplicate contact.", "अपनी बकाया राशि और भुगतान इतिहास एक ही जगह देखें, अपनी भाषा में सम्मानजनक रिमाइंडर पाएँ और पुनर्भुगतान सहायता खोजें। बार-बार या दोहराया संपर्क नहीं।", "तुमची थकबाकी आणि भरणा इतिहास एकाच ठिकाणी पहा, तुमच्या भाषेत आदरपूर्वक स्मरणपत्रे मिळवा आणि परतफेड मदत शोधा. वारंवार किंवा पुनरावृत्त संपर्क नाही."],
+ ["Recovery trend (₹ lakh, last 6 months)", "वसूली रुझान (₹ लाख, पिछले 6 महीने)", "वसुली कल (₹ लाख, गेले 6 महिने)"],
+ ["Overdue accounts by risk", "जोखिम के अनुसार बकाया खाते", "जोखमीनुसार थकीत खाती"],
+ ["Agent performance", "एजेंट प्रदर्शन", "एजंट कामगिरी"],
+ ["Export report", "रिपोर्ट निर्यात करें", "अहवाल निर्यात करा"],
+ ["Smart Case Prioritisation", "स्मार्ट केस प्राथमिकता", "स्मार्ट केस प्राधान्य"],
+ ["AI recommends; humans decide. Click a case to see why it received its score and the unified account record.", "एआई सुझाव देता है; निर्णय इंसान लेते हैं। किसी केस पर क्लिक करके देखें कि उसे यह स्कोर क्यों मिला और एकीकृत खाता रिकॉर्ड।", "एआय सुचवतो; निर्णय माणसे घेतात. केसवर क्लिक करून त्याला हा स्कोअर का मिळाला आणि एकत्रित खाते रेकॉर्ड पहा."],
+ ["Select a case.", "कोई केस चुनें।", "एखादी केस निवडा."],
+ ["Field Agent Management", "फ़ील्ड एजेंट प्रबंधन", "फील्ड एजंट व्यवस्थापन"],
+ ["Agents", "एजेंट", "एजंट"],
+ ["Assign cases", "केस सौंपें", "केस नेमा"],
+ ["Live agent map", "लाइव एजेंट मानचित्र", "थेट एजंट नकाशा"],
+ ["Map placeholder", "मानचित्र प्लेसहोल्डर", "नकाशा प्लेसहोल्डर"],
+ ["Needs maps API key", "मैप्स एपीआई कुंजी आवश्यक", "नकाशा एपीआय की आवश्यक"],
+ ["Automated Digital Reminders", "स्वचालित डिजिटल रिमाइंडर", "स्वयंचलित डिजिटल स्मरणपत्रे"],
+ ["Message preview", "संदेश पूर्वावलोकन", "संदेश पूर्वदृश्य"],
+ ["Channel", "माध्यम", "माध्यम"],
+ ["Tone", "लहजा", "सूर"],
+ ["Polite", "विनम्र", "नम्र"],
+ ["Supportive", "सहायक", "सहाय्यक"],
+ ["Send reminder", "रिमाइंडर भेजें", "स्मरणपत्र पाठवा"],
+ ["Sending is checked against contact limits and consent before dispatch.", "भेजने से पहले संपर्क सीमा और सहमति की जाँच की जाती है।", "पाठवण्यापूर्वी संपर्क मर्यादा आणि संमतीची तपासणी केली जाते."],
+ ["Contact-limit guard", "संपर्क-सीमा सुरक्षा", "संपर्क-मर्यादा संरक्षक"],
+ ["Contacts this week for selected borrower:", "चुने गए उधारकर्ता के इस सप्ताह के संपर्क:", "निवडलेल्या कर्जदाराचे या आठवड्यातील संपर्क:"],
+ ["A duplicate follow-up (same borrower, same day, different team) is flagged and blocked automatically.", "दोहराया गया फ़ॉलो-अप (वही उधारकर्ता, उसी दिन, अलग टीम) अपने-आप चिह्नित और ब्लॉक किया जाता है।", "पुनरावृत्त फॉलो-अप (तोच कर्जदार, त्याच दिवशी, वेगळी टीम) आपोआप चिन्हांकित करून थांबवला जातो."],
+ ["Duplicate flagged", "डुप्लिकेट चिह्नित", "डुप्लिकेट चिन्हांकित"],
+ ["Case C-1042 – call already logged today by Agent Rohan.", "केस C-1042 – आज एजेंट रोहन द्वारा कॉल पहले ही दर्ज किया जा चुका है।", "केस C-1042 – आज एजंट रोहन यांनी कॉल आधीच नोंदवला आहे."],
+ ["Outstanding amount", "बकाया राशि", "थकबाकी रक्कम"],
+ ["Next EMI due", "अगली ईएमआई देय", "पुढील ईएमआय देय"],
+ ["Status", "स्थिति", "स्थिती"],
+ ["1 EMI overdue", "1 ईएमआई बकाया", "1 ईएमआय थकीत"],
+ ["Dues breakdown", "बकाया का विवरण", "थकबाकी तपशील"],
+ ["Principal overdue", "बकाया मूलधन", "थकीत मुद्दल"],
+ ["Late charges", "विलंब शुल्क", "विलंब शुल्क"],
+ ["Upcoming EMI", "आगामी ईएमआई", "आगामी ईएमआय"],
+ ["Pay now", "अभी भुगतान करें", "आता भरा"],
+ ["Request repayment support", "पुनर्भुगतान सहायता का अनुरोध करें", "परतफेड मदतीची विनंती करा"],
+ ["AI Borrower Assistant", "एआई उधारकर्ता सहायक", "एआय कर्जदार सहाय्यक"],
+ ["Hello! Ask me about your dues, EMI schedule or repayment options.", "नमस्ते! अपनी बकाया राशि, ईएमआई शेड्यूल या पुनर्भुगतान विकल्पों के बारे में पूछें।", "नमस्कार! तुमची थकबाकी, ईएमआय वेळापत्रक किंवा परतफेड पर्यायांबद्दल विचारा."],
+ ["Type your question…", "अपना प्रश्न लिखें…", "तुमचा प्रश्न लिहा…"],
+ ["Send", "भेजें", "पाठवा"],
+ ["Payment & follow-up history", "भुगतान और फ़ॉलो-अप इतिहास", "भरणा आणि फॉलो-अप इतिहास"],
+ ["Payment of ₹1,800 received", "₹1,800 का भुगतान प्राप्त हुआ", "₹1,800 चा भरणा प्राप्त झाला"],
+ ["05 Oct 2026 · updates all dashboards instantly", "05 अक्टू. 2026 · सभी डैशबोर्ड तुरंत अपडेट होते हैं", "05 ऑक्टो. 2026 · सर्व डॅशबोर्ड त्वरित अपडेट होतात"],
+ ["Reminder sent via SMS (Hindi)", "एसएमएस (हिन्दी) से रिमाइंडर भेजा गया", "एसएमएसद्वारे (हिन्दी) स्मरणपत्र पाठवले"],
+ ["EMI due date missed", "ईएमआई की देय तिथि छूट गई", "ईएमआयची देय तारीख चुकली"],
+ ["Compliance & Transparency", "अनुपालन और पारदर्शिता", "अनुपालन आणि पारदर्शकता"],
+ ["Max contacts / borrower / week", "प्रति उधारकर्ता प्रति सप्ताह अधिकतम संपर्क", "प्रति कर्जदार प्रति आठवडा कमाल संपर्क"],
+ ["Consent on record", "रिकॉर्ड पर सहमति", "नोंदवलेली संमती"],
+ ["Contact hours allowed", "संपर्क के अनुमत घंटे", "संपर्कासाठी परवानगी असलेली वेळ"],
+ ["8 AM – 7 PM", "सुबह 8 – शाम 7 बजे", "सकाळी 8 – सायं. 7"],
+ ["Activity audit log", "गतिविधि ऑडिट लॉग", "क्रियाकलाप ऑडिट नोंद"],
+ ["Download audit report", "ऑडिट रिपोर्ट डाउनलोड करें", "ऑडिट अहवाल डाउनलोड करा"],
+ ["Page", "पृष्ठ", "पृष्ठ"],
+ ["This page is intentionally blank – to be built together with its API.", "यह पृष्ठ जानबूझकर खाली है – इसे इसके एपीआई के साथ बनाया जाएगा।", "हे पृष्ठ जाणीवपूर्वक रिकामे आहे – ते त्याच्या एपीआयसह तयार केले जाईल."],
+ ["Back to Home", "होम पर वापस जाएँ", "मुख्यपृष्ठावर परत जा"],
+ ["TRUSTMINT · Team Veloura · Quasar 5.0 FinTech · Prototype with sample data only", "TRUSTMINT · टीम वेलूरा · क्वासर 5.0 फिनटेक · केवल नमूना डेटा वाला प्रोटोटाइप", "TRUSTMINT · टीम वेलूरा · क्वासर 5.0 फिनटेक · फक्त नमुना डेटा असलेला प्रोटोटाइप"],
+ ["TRUSTMINT – AI-Powered Debt Collections Platform", "TRUSTMINT – एआई-संचालित ऋण वसूली प्लेटफ़ॉर्म", "TRUSTMINT – एआय-आधारित कर्ज वसुली प्लॅटफॉर्म"],
+ ["Overdue accounts", "बकाया खाते", "थकीत खाती"],
+ ["Recovered this month", "इस माह की वसूली", "या महिन्यातील वसुली"],
+ ["Pending payments", "लंबित भुगतान", "प्रलंबित भरणा"],
+ ["Digital-resolved", "डिजिटल रूप से हल", "डिजिटल पद्धतीने निराकरण"],
+ ["Jun", "जून", "जून"],
+ ["Jul", "जुलाई", "जुलै"],
+ ["Aug", "अग.", "ऑग."],
+ ["Sep", "सित.", "सप्टें."],
+ ["Oct", "अक्टू.", "ऑक्टो."],
+ ["Nov", "नव.", "नोव्हें."],
+ ["High", "उच्च", "उच्च"],
+ ["Medium", "मध्यम", "मध्यम"],
+ ["Low", "निम्न", "कमी"],
+ ["Agent", "एजेंट", "एजंट"],
+ ["Area", "क्षेत्र", "परिसर"],
+ ["Assigned", "सौंपे गए", "नेमलेले"],
+ ["Done", "पूर्ण", "पूर्ण"],
+ ["Andheri", "अंधेरी", "अंधेरी"],
+ ["Thane", "ठाणे", "ठाणे"],
+ ["Navi Mumbai", "नवी मुंबई", "नवी मुंबई"],
+ ["On route", "रास्ते में", "मार्गावर"],
+ ["Completed", "पूर्ण हुआ", "पूर्ण झाले"],
+ ["Case", "केस", "केस"],
+ ["Borrower", "उधारकर्ता", "कर्जदार"],
+ ["Due", "देय", "देय"],
+ ["DPD", "बकाया दिन", "थकीत दिवस"],
+ ["Risk", "जोखिम", "जोखीम"],
+ ["Risk score", "जोखिम स्कोर", "जोखीम स्कोअर"],
+ ["Preferred language: Hindi", "पसंदीदा भाषा: हिन्दी", "पसंतीची भाषा: हिन्दी"],
+ ["Preferred language: Marathi", "पसंदीदा भाषा: मराठी", "पसंतीची भाषा: मराठी"],
+ ["Preferred language: English", "पसंदीदा भाषा: अंग्रेज़ी", "पसंतीची भाषा: इंग्रजी"],
+ ["Why this score?", "यह स्कोर क्यों?", "हा स्कोअर का?"],
+ ["Recommended next action", "सुझाई गई अगली कार्रवाई", "सुचवलेली पुढील कृती"],
+ ["Field visit (digital reminders ignored)", "फ़ील्ड विज़िट (डिजिटल रिमाइंडर अनदेखे)", "फील्ड भेट (डिजिटल स्मरणपत्रांकडे दुर्लक्ष)"],
+ ["Digital reminder + offer EMI restructure", "डिजिटल रिमाइंडर + ईएमआई पुनर्गठन का प्रस्ताव", "डिजिटल स्मरणपत्र + ईएमआय पुनर्रचना प्रस्ताव"],
+ ["Automated SMS reminder only", "केवल स्वचालित एसएमएस रिमाइंडर", "फक्त स्वयंचलित एसएमएस स्मरणपत्र"],
+ ["Suggestion only – a human officer makes the final decision.", "केवल सुझाव – अंतिम निर्णय मानव अधिकारी लेता है।", "फक्त सूचना – अंतिम निर्णय मानवी अधिकारी घेतात."],
+ ["Send digital reminder", "डिजिटल रिमाइंडर भेजें", "डिजिटल स्मरणपत्र पाठवा"],
+ ["Assign to agent", "एजेंट को सौंपें", "एजंटला नेमा"],
+ ["Unified record", "एकीकृत रिकॉर्ड", "एकत्रित रेकॉर्ड"],
+ ["Reminder sent", "रिमाइंडर भेजा गया", "स्मरणपत्र पाठवले"],
+ ["Digital · last week", "डिजिटल · पिछले सप्ताह", "डिजिटल · गेल्या आठवड्यात"],
+ ["Call attempted", "कॉल का प्रयास किया गया", "कॉलचा प्रयत्न केला"],
+ ["Agent · 2 days ago", "एजेंट · 2 दिन पहले", "एजंट · 2 दिवसांपूर्वी"],
+ ["3 missed EMIs in last 6 months (+32)", "पिछले 6 महीनों में 3 ईएमआई छूटीं (+32)", "गेल्या 6 महिन्यांत 3 ईएमआय चुकल्या (+32)"],
+ ["No response to last 4 reminders (+24)", "पिछले 4 रिमाइंडर का कोई जवाब नहीं (+24)", "शेवटच्या 4 स्मरणपत्रांना प्रतिसाद नाही (+24)"],
+ ["Outstanding > 40% of loan (+18)", "बकाया ऋण का 40% से अधिक (+18)", "थकबाकी कर्जाच्या 40% पेक्षा जास्त (+18)"],
+ ["Salary-date pattern on 1st (-6 ⇒ visit after 3rd)", "वेतन-तिथि 1 तारीख को (-6 ⇒ 3 तारीख के बाद विज़िट)", "पगार तारीख 1 रोजी (-6 ⇒ 3 तारखेनंतर भेट)"],
+ ["1 missed EMI, earlier history clean (+20)", "1 ईएमआई छूटी, पहले का इतिहास साफ़ (+20)", "1 ईएमआय चुकली, पूर्वीचा इतिहास स्वच्छ (+20)"],
+ ["Opened last reminder but didn't pay (+16)", "पिछला रिमाइंडर खोला पर भुगतान नहीं किया (+16)", "मागील स्मरणपत्र उघडले पण भरणा केला नाही (+16)"],
+ ["Partial payment made in September (-8)", "सितंबर में आंशिक भुगतान किया (-8)", "सप्टेंबरमध्ये आंशिक भरणा केला (-8)"],
+ ["Always paid within 7 days historically (-30)", "इतिहास में हमेशा 7 दिनों के भीतर भुगतान (-30)", "पूर्वी नेहमी 7 दिवसांत भरणा (-30)"],
+ ["Payment app autopay failed once (+10)", "पेमेंट ऐप का ऑटोपे एक बार विफल (+10)", "पेमेंट अॅपचा ऑटोपे एकदा अयशस्वी (+10)"],
+ ["Time", "समय", "वेळ"],
+ ["Activity", "गतिविधि", "क्रियाकलाप"],
+ ["Account", "खाता", "खाते"],
+ ["By", "द्वारा", "द्वारे"],
+ ["Check", "जाँच", "तपासणी"],
+ ["SMS reminder (Hindi)", "एसएमएस रिमाइंडर (हिन्दी)", "एसएमएस स्मरणपत्र (हिन्दी)"],
+ ["Call logged", "कॉल दर्ज", "कॉल नोंदवला"],
+ ["Payment received ₹1,800", "₹1,800 का भुगतान प्राप्त", "₹1,800 चा भरणा प्राप्त"],
+ ["Reminder blocked (limit)", "रिमाइंडर रोका गया (सीमा)", "स्मरणपत्र थांबवले (मर्यादा)"],
+ ["System", "सिस्टम", "सिस्टम"],
+ ["Gateway", "गेटवे", "गेटवे"],
+ ["Consent ✔ · Limit 2/3", "सहमति ✔ · सीमा 2/3", "संमती ✔ · मर्यादा 2/3"],
+ ["Within hours ✔", "समय-सीमा के भीतर ✔", "वेळेच्या मर्यादेत ✔"],
+ ["Auto-updated", "स्वतः अपडेट", "आपोआप अपडेट"],
+ ["Limit 3/3 reached", "सीमा 3/3 पूर्ण", "मर्यादा 3/3 पूर्ण"],
+ ["AI Risk Prediction", "एआई जोखिम पूर्वानुमान", "एआय जोखीम अंदाज"],
+ ["Smart Prioritisation", "स्मार्ट प्राथमिकता", "स्मार्ट प्राधान्य"],
+ ["Digital Reminders", "डिजिटल रिमाइंडर", "डिजिटल स्मरणपत्रे"],
+ ["Unified Account Tracking", "एकीकृत खाता ट्रैकिंग", "एकत्रित खाते ट्रॅकिंग"],
+ ["Multilingual", "बहुभाषी", "बहुभाषिक"],
+ ["Probability of delayed repayment from history.", "इतिहास से देर से भुगतान की संभावना।", "इतिहासावरून उशिरा परतफेडीची शक्यता."],
+ ["Which accounts first, and what next action.", "कौन से खाते पहले, और अगली कार्रवाई क्या।", "कोणती खाती आधी, आणि पुढील कृती काय."],
+ ["Personalised, respectful messages.", "व्यक्तिगत, सम्मानजनक संदेश।", "वैयक्तिक, आदरपूर्वक संदेश."],
+ ["Dues, EMI and repayment options explained.", "बकाया, ईएमआई और पुनर्भुगतान विकल्प समझाए जाते हैं।", "थकबाकी, ईएमआय आणि परतफेड पर्याय समजावले जातात."],
+ ["Assign, track visits, keep records.", "केस सौंपें, विज़िट ट्रैक करें, रिकॉर्ड रखें।", "केस नेमा, भेटींचा मागोवा घ्या, नोंदी ठेवा."],
+ ["One shared record per account.", "हर खाते का एक साझा रिकॉर्ड।", "प्रत्येक खात्याचा एक सामायिक रेकॉर्ड."],
+ ["English, Hindi and Marathi.", "अंग्रेज़ी, हिन्दी और मराठी।", "इंग्रजी, हिन्दी आणि मराठी."],
+ ["Consent, limits, audit logs.", "सहमति, सीमाएँ, ऑडिट लॉग।", "संमती, मर्यादा, ऑडिट नोंदी."],
+ ["Recovery, agents and trends.", "वसूली, एजेंट और रुझान।", "वसुली, एजंट आणि कल."],
+ ["[AI response will appear here once the assistant API is connected]", "[सहायक एपीआई जुड़ने पर एआई का उत्तर यहाँ दिखेगा]", "[सहाय्यक एपीआय जोडल्यानंतर एआयचे उत्तर येथे दिसेल]"],
+ ["Reports", "रिपोर्ट", "अहवाल"],
+ ["Assign", "सौंपें", "नेमा"],
+ ["Pay", "भुगतान", "भरणा"],
+ ["Repay plan", "पुनर्भुगतान योजना", "परतफेड योजना"],
+ ["Welcome to TRUSTMINT", "TRUSTMINT में आपका स्वागत है", "TRUSTMINT मध्ये आपले स्वागत आहे"],
+ ["Choose your portal and sign in.", "अपना पोर्टल चुनें और साइन इन करें।", "तुमचे पोर्टल निवडा आणि साइन इन करा."],
+ ["Customer Login", "ग्राहक लॉगिन", "ग्राहक लॉगिन"],
+ ["Bank Manager Login", "बैंक मैनेजर लॉगिन", "बँक व्यवस्थापक लॉगिन"],
+ ["For bank staff", "बैंक कर्मचारियों के लिए", "बँक कर्मचाऱ्यांसाठी"],
+ ["Sign in with your registered mobile number. We will send you a one-time password.", "अपने पंजीकृत मोबाइल नंबर से साइन इन करें। हम आपको वन-टाइम पासवर्ड भेजेंगे।", "तुमच्या नोंदणीकृत मोबाइल नंबरने साइन इन करा. आम्ही तुम्हाला वन-टाइम पासवर्ड पाठवू."],
+ ["Mobile number", "मोबाइल नंबर", "मोबाइल नंबर"],
+ ["10-digit mobile number", "10 अंकों का मोबाइल नंबर", "10 अंकी मोबाइल नंबर"],
+ ["Send OTP", "ओटीपी भेजें", "ओटीपी पाठवा"],
+ ["Enter the 6-digit OTP sent to", "इस नंबर पर भेजा गया 6 अंकों का ओटीपी दर्ज करें:", "या नंबरवर पाठवलेला 6 अंकी ओटीपी टाका:"],
+ ["Verify & Login", "सत्यापित करें और लॉगिन करें", "पडताळा आणि लॉगिन करा"],
+ ["Resend OTP", "ओटीपी दोबारा भेजें", "ओटीपी पुन्हा पाठवा"],
+ ["Change number", "नंबर बदलें", "नंबर बदला"],
+ ["Demo mode: any 10-digit number and any 6-digit OTP works until the backend is connected.", "डेमो मोड: बैकएंड जुड़ने तक कोई भी 10 अंकों का नंबर और कोई भी 6 अंकों का ओटीपी चलेगा।", "डेमो मोड: बॅकएंड जोडेपर्यंत कोणताही 10 अंकी नंबर आणि कोणताही 6 अंकी ओटीपी चालेल."],
+ ["For bank and NBFC staff. Sign in with your work email and password.", "बैंक और एनबीएफसी कर्मचारियों के लिए। अपने कार्य ईमेल और पासवर्ड से साइन इन करें।", "बँक आणि एनबीएफसी कर्मचाऱ्यांसाठी. तुमच्या कार्य ईमेल आणि पासवर्डने साइन इन करा."],
+ ["Work email", "कार्य ईमेल", "कार्य ईमेल"],
+ ["Password", "पासवर्ड", "पासवर्ड"],
+ ["Show", "दिखाएँ", "दाखवा"],
+ ["Hide", "छिपाएँ", "लपवा"],
+ ["Demo mode: any valid email and any password works until the backend is connected.", "डेमो मोड: बैकएंड जुड़ने तक कोई भी मान्य ईमेल और कोई भी पासवर्ड चलेगा।", "डेमो मोड: बॅकएंड जोडेपर्यंत कोणताही वैध ईमेल आणि कोणताही पासवर्ड चालेल."],
+ ["Enter a valid 10-digit mobile number.", "कृपया मान्य 10 अंकों का मोबाइल नंबर दर्ज करें।", "कृपया वैध 10 अंकी मोबाइल नंबर टाका."],
+ ["Enter the 6-digit OTP.", "6 अंकों का ओटीपी दर्ज करें।", "6 अंकी ओटीपी टाका."],
+ ["Enter a valid email address.", "कृपया मान्य ईमेल पता दर्ज करें।", "कृपया वैध ईमेल पत्ता टाका."],
+ ["Enter your password.", "अपना पासवर्ड दर्ज करें।", "तुमचा पासवर्ड टाका."],
+ ["name@bank.com", "name@bank.com", "name@bank.com"],
+ ["Please sign in to open that page.", "उस पृष्ठ को खोलने के लिए कृपया साइन इन करें।", "ते पृष्ठ उघडण्यासाठी कृपया साइन इन करा."],
+ ["This page isn't available for your account.", "यह पृष्ठ आपके खाते के लिए उपलब्ध नहीं है।", "हे पृष्ठ तुमच्या खात्यासाठी उपलब्ध नाही."],
+ ["OTP-based customer sign-in", "ओटीपी आधारित ग्राहक साइन-इन", "ओटीपी आधारित ग्राहक साइन-इन"],
+ ["Role-based access", "भूमिका-आधारित पहुँच", "भूमिकेवर आधारित प्रवेश"],
+ ["Activity is logged for compliance", "अनुपालन के लिए गतिविधि दर्ज की जाती है", "अनुपालनासाठी क्रियाकलाप नोंदवले जातात"],
+ ["Customer", "ग्राहक", "ग्राहक"],
+ ["Bank Manager", "बैंक मैनेजर", "बँक व्यवस्थापक"],
+ ["Logout", "लॉगआउट", "लॉगआउट"],
+ ["My Reminders", "मेरे रिमाइंडर", "माझी स्मरणपत्रे"],
+ ["Every message sent to you about your loan, in one place.", "आपके ऋण से जुड़े आपको भेजे गए सभी संदेश, एक ही जगह।", "तुमच्या कर्जाबद्दल तुम्हाला पाठवलेले सर्व संदेश, एकाच ठिकाणी."],
+ ["EMI due reminder via WhatsApp (English)", "व्हाट्सऐप (अंग्रेज़ी) से ईएमआई देय रिमाइंडर", "व्हॉट्सअॅपद्वारे (इंग्रजी) ईएमआय देय स्मरणपत्र"]
+].map(r=>[r[0],{hi:r[1],mr:r[2]}]));
+const MONTHS={hi:{Jan:"जन.",Feb:"फ़र.",Mar:"मार्च",Apr:"अप्रै.",May:"मई",Jun:"जून",Jul:"जुल.",Aug:"अग.",Sep:"सित.",Oct:"अक्टू.",Nov:"नव.",Dec:"दिस."},
+              mr:{Jan:"जाने.",Feb:"फेब्रु.",Mar:"मार्च",Apr:"एप्रि.",May:"मे",Jun:"जून",Jul:"जुलै",Aug:"ऑग.",Sep:"सप्टें.",Oct:"ऑक्टो.",Nov:"नोव्हें.",Dec:"डिसें."}};
+const TXT=new WeakMap(), ATT=new WeakMap();   // remember original English of each text node / placeholder
+function tx(base,l){                           // translate one string (keeps surrounding spaces)
+  if(l==="en")return base;
+  const m=base.match(/^(\s*)([\s\S]*?)(\s*)$/), core=m[2]; if(!core)return base;
+  let hit=D[core]&&D[core][l];
+  if(!hit){const p=core.match(/^([^\p{L}\p{N}\[]*)([\s\S]*)$/u);          // ignore leading emoji / arrows / bullets
+           if(p[1]&&D[p[2]]&&D[p[2]][l])hit=p[1]+D[p[2]][l];}
+  if(!hit&&/^\d{2} [A-Z][a-z]{2}\b/.test(core))hit=core.replace(/ ([A-Z][a-z]{2})\b/,(x,mo)=>" "+(MONTHS[l][mo]||mo)); // "04 Nov 10:42"
+  return hit?m[1]+hit+m[3]:base}
+function applyLang(){
+  const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  for(let n;n=w.nextNode();){
+    const el=n.parentElement; if(!el||/^(SCRIPT|STYLE)$/.test(el.tagName)||el.closest("#lang,#remPreview"))continue;
+    if(!TXT.has(n))TXT.set(n,n.nodeValue);
+    const v=tx(TXT.get(n),LANG); if(n.nodeValue!==v)n.nodeValue=v}
+  document.querySelectorAll("[placeholder]").forEach(e=>{if(!ATT.has(e))ATT.set(e,e.placeholder);e.placeholder=tx(ATT.get(e),LANG)});
+  document.title=tx("TRUSTMINT – AI-Powered Debt Collections Platform",LANG);
+  document.documentElement.lang=LANG}
+const OBS_CFG={childList:true,subtree:true};
+const obs=new MutationObserver(()=>{if(LANG==="en")return;obs.disconnect();applyLang();obs.observe(document.body,OBS_CFG)}); // new content ⇒ translate it
+$("lang").onchange=e=>{LANG=e.target.value;obs.disconnect();applyLang();$("remPreview").textContent=remText();obs.observe(document.body,OBS_CFG)};
+
+/* =====================================================================
+   3e. AUTH – front-end session, role guard, login forms.
+   ⚠ NOT real security: everything here can be bypassed from the browser.
+   The backend must verify the token on EVERY API request and enforce roles.
+
+   API CONTRACT (to build later)
+   - POST /api/auth/customer/request-otp  {mobile}            → 200 (OTP sent by SMS)
+   - POST /api/auth/customer/verify-otp   {mobile, otp}       → {token, role:"customer", customer}
+   - POST /api/auth/manager/login         {email, password}   → {token, role:"manager", user}
+   - POST /api/auth/logout                                    → 204
+   - GET  /api/auth/me                                        → {role, id}   (restore session on reload)
+   Store the token in an httpOnly cookie (preferred) instead of the demo session below.
+   ===================================================================== */
+const SESS_KEY="tm_session";
+const ROLE_PAGES={customer:["home","borrower","my-reminders"],manager:["home","manager","cases","agents","reminders","compliance"]}; // pages each role may open
+const ROLE_HOME={customer:"borrower",manager:"manager"};                                                                          // landing page after login
+let memSess=null; try{memSess=JSON.parse(sessionStorage.getItem(SESS_KEY))}catch(e){}
+function getSession(){return memSess}
+function setSession(v){memSess=v;try{v?sessionStorage.setItem(SESS_KEY,JSON.stringify(v)):sessionStorage.removeItem(SESS_KEY)}catch(e){}}
+let gateTimer;function showGate(msg){const g=$("gate");g.textContent=msg;g.hidden=false;clearTimeout(gateTimer);gateTimer=setTimeout(()=>g.hidden=true,4500)}
+function applyAuthUI(){                       // show/hide nav links, user chip and Login/Logout buttons
+  const s=getSession(), r=s?s.role:"public";
+  document.querySelectorAll("#nav a").forEach(a=>a.hidden=!(a.dataset.roles||"public").split(" ").includes(r));
+  $("loginBtn").hidden=!!s;$("logoutBtn").hidden=!s;$("who").hidden=!s;
+  if(s){$("whoRole").textContent=s.role==="manager"?"Bank Manager":"Customer";$("whoId").textContent=s.id}
+}
+function signIn(role,id){setSession({role,id});location.hash=ROLE_HOME[role];route()}
+$("logoutBtn").onclick=()=>{ /* API: POST /api/auth/logout */
+  setSession(null);resetLogin();if(location.hash==="#home"){route()}else{location.hash="home"}};
+
+/* ---- helpers ---- */
+const setErr=(id,msg,inp)=>{$(id).textContent=msg;if(inp)inp.classList.toggle("bad",!!msg)};
+function resetLogin(){["mob","memail","mpass"].forEach(i=>{$(i).value="";$(i).classList.remove("bad")});
+  ["mobErr","otpErr","emailErr","passErr"].forEach(i=>setErr(i,""));boxes.forEach(b=>b.value="");
+  $("custStep1").hidden=false;$("custStep2").hidden=true;clearInterval(otpInt)}
+
+/* ---- CUSTOMER: mobile → OTP ---- */
+const boxes=[];let pendingMobile="",otpInt;
+for(let i=0;i<6;i++){const b=document.createElement("input");b.maxLength=1;b.inputMode="numeric";b.autocomplete="one-time-code";b.setAttribute("aria-label","OTP digit "+(i+1));$("otpBoxes").appendChild(b);boxes.push(b)}
+boxes.forEach((b,i)=>{
+  b.oninput=()=>{b.value=b.value.replace(/\D/g,"");if(b.value&&i<5)boxes[i+1].focus()};
+  b.onkeydown=e=>{if(e.key==="Backspace"&&!b.value&&i>0)boxes[i-1].focus();if(e.key==="Enter")$("otpVerify").click()};
+  b.onpaste=e=>{const t=(e.clipboardData.getData("text")||"").replace(/\D/g,"").slice(0,6);if(t){e.preventDefault();[...t].forEach((c,k)=>boxes[k].value=c);boxes[Math.min(t.length,5)].focus()}}});
+$("mob").oninput=e=>{e.target.value=e.target.value.replace(/\D/g,"")};
+$("mob").onkeydown=e=>{if(e.key==="Enter")$("otpSend").click()};
+function startTimer(){let n=30;clearInterval(otpInt);$("otpResend").classList.add("off");
+  const tick=()=>{$("otpTimer").textContent=n>0?" ("+n+"s)":"";if(n--<=0){clearInterval(otpInt);$("otpResend").classList.remove("off")}};tick();otpInt=setInterval(tick,1000)}
+function sendOtp(){const m=$("mob").value.trim();
+  if(!/^\d{10}$/.test(m)){setErr("mobErr","Enter a valid 10-digit mobile number.",$("mob"));return}
+  setErr("mobErr","",$("mob"));
+  // API: POST /api/auth/customer/request-otp  {mobile:m}
+  pendingMobile=m;$("mobShow").textContent="+91 "+m.slice(0,2)+"••••••"+m.slice(-2);
+  $("custStep1").hidden=true;$("custStep2").hidden=false;boxes.forEach(b=>b.value="");boxes[0].focus();startTimer()}
+$("otpSend").onclick=sendOtp;
+$("otpResend").onclick=()=>{if(!$("otpResend").classList.contains("off")){sendOtp()}};   // API: same request-otp call
+$("otpChange").onclick=()=>{clearInterval(otpInt);$("custStep2").hidden=true;$("custStep1").hidden=false;$("mob").focus()};
+$("otpVerify").onclick=()=>{const code=boxes.map(b=>b.value).join("");
+  if(!/^\d{6}$/.test(code)){setErr("otpErr","Enter the 6-digit OTP.");return}
+  setErr("otpErr","");
+  // API: POST /api/auth/customer/verify-otp  {mobile:pendingMobile, otp:code} → on success store token
+  clearInterval(otpInt);signIn("customer","+91 "+pendingMobile.slice(0,2)+"••••••"+pendingMobile.slice(-2))};
+
+/* ---- MANAGER: email + password ---- */
+$("pwToggle").onclick=()=>{const p=$("mpass"),show=p.type==="password";p.type=show?"text":"password";$("pwToggle").textContent=show?"Hide":"Show"};
+$("mgrLogin").onclick=()=>{const em=$("memail").value.trim(),pw=$("mpass").value;let ok=true;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){setErr("emailErr","Enter a valid email address.",$("memail"));ok=false}else setErr("emailErr","",$("memail"));
+  if(!pw){setErr("passErr","Enter your password.",$("mpass"));ok=false}else setErr("passErr","",$("mpass"));
+  if(!ok)return;
+  // API: POST /api/auth/manager/login  {email:em, password:pw} → on success store token
+  signIn("manager",em)};
+["memail","mpass"].forEach(i=>$(i).onkeydown=e=>{if(e.key==="Enter")$("mgrLogin").click()});
+
+route(); // initial render
+obs.observe(document.body,OBS_CFG); // keep translating content added later
+</script>
+</body>
+</html>
